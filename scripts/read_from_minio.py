@@ -26,11 +26,11 @@ def read_from_delta(spark, path):
     """Read data from a Delta table in MinIO"""
     try:
         df = spark.read.format("delta").load(path)
-        print(f"Readig from {path}")
+        print(f"Reading from {path}")
         df.show(truncate=False)
         print(f"Schema for {path}")
         df.printSchema()
-        print(f"Countr for {path}: {df.count()}")
+        print(f"Count for {path}: {df.count()}")
         return df
     except Exception as e:
         print(f"Error readig from {path}: {e}")

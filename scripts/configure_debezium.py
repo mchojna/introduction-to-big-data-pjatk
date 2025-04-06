@@ -11,7 +11,7 @@ def wait_for_kafka_connect():
     for i in range(max_retries):
         try:
             response = requests.get(url)
-            if requests.status_codes == 200:
+            if response.status_codes == 200:
                 print("Kafka Connect is available")
                 return True
         except requests.exceptions.ConnectionError:

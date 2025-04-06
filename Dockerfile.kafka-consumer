@@ -3,7 +3,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install required packages
-RUN pip install confluent-kafka[avro]
+RUN pip install confluent-kafka[avro] fastavro
 
 # Copy the consumer script
 COPY scripts/kafka_consumer.py /app/
