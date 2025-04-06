@@ -15,7 +15,8 @@ def create_spark_session():
                     "org.apache.kafka:kafka-clients:3.3.1,"
                     "io.confluent:kafka-avro-serializer:7.3.0,"
                     "org.apache.spark:spark-avro_2.12:3.3.1,"
-                    "io.delta:delta-core_2.12:2.2.0"
+                    "io.delta:delta-core_2.12:2.2.0",
+                    "org.apache.hadoop:hadoop-aws:3.3.1"
                 )
                 .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
                 .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
@@ -93,8 +94,8 @@ def read_from_kafka(spark, topic, schema):
             .select("data.*")
     )
     
-def process_customer(spark, schemas):
-    """Process customer data from Kafka"""
+def process_customers(spark, schemas):
+    """Process customer data from Kafka and write to MinIO in Delta format"""
     customers_df = read_from_kafka(spark, "business.public.customers", schemas["customer"])
     
     # Convert registration_date to timestamp
@@ -104,7 +105,7 @@ def process_customer(spark, schemas):
     )
     
     # Write to console for debugging
-    query = (
+    console_query = (
         customers_df
             .writeStream
             .outputMode("append")
@@ -112,14 +113,24 @@ def process_customer(spark, schemas):
             .start()
     )
     
-    return query
+    # Write to MinIO in Delta format
+    delta_query = (
+        customers_df
+            .writeStream
+            .outputMode("append")
+            .format("delta")
+            .option("checkpointLocation", "s3a://delta-lake/checkpoints/customers")
+            .start("s3a://delta-lake/customers")
+    )
+    
+    return [console_query, delta_query]
 
 def process_products(spark, schemas):
-    """Process product data from Kafka"""
+    """Process product data from Kafka and write to MinIO in Delta format"""
     products_df = read_from_kafka(spark, "business.public.products", schemas["product"])
     
     # Write to console for debugging
-    query = (
+    console_query = (
         products_df
             .writeStream
             .outputMode("append")
@@ -127,10 +138,20 @@ def process_products(spark, schemas):
             .start()
     )
     
-    return query
+    # Write to MinIO in Delta format
+    delta_query = (
+        products_df
+            .writeStream
+            .outputMode("append")
+            .format("delta")
+            .option("checkpointLocation", "s3a://delta-lake/checkpoints/products")
+            .start("s3a://delta-lake/products")
+    )
+        
+    return [console_query, delta_query]
 
 def process_orders(spark, schemas):
-    """Process order data from Kafka"""
+    """Process order data from Kafka and write to MinIO in Delta format"""
     orders_df = read_from_kafka(spark, "business.public.orders", schemas["order"])
     
     # Convert order_data to timestamp
@@ -138,9 +159,9 @@ def process_orders(spark, schemas):
         "order_date",
         to_timestamp(col("order_date"), "yyyy-MM-dd")
     )
-    
+       
     # Write to console for debugging
-    query = (
+    console_query = (
         orders_df
              .writeStream
              .outputMode("append")
@@ -148,14 +169,24 @@ def process_orders(spark, schemas):
              .start()
     )
     
-    return query
+    # Write to MinIO in Delta format
+    delta_query = (
+        orders_df
+            .writeStream
+            .outputMode("append")
+            .format("delta")
+            .option("checkpointLocation", "s3a://delta-lake/checkpoints/orders")
+            .start("s3a://delta-lake/orders")
+    )
+    
+    return [console_query, delta_query]
 
 def process_order_items(spark, schemas):
-    """Process order item data from Kafka"""
+    """Process order item data from Kafka and write to MinIO in Delta format"""
     order_items_df = read_from_kafka(spark, "business.public.order_items", schemas["order_item"])
     
     # Write to console for debugging
-    query = (
+    console_query = (
         order_items_df
              .writeStream
              .outputMode("append")
@@ -163,10 +194,20 @@ def process_order_items(spark, schemas):
              .start()
     )
     
-    return query
+    # Write to MinIO in Delta format
+    delta_query = (
+        order_items_df
+            .writeStream
+            .outputMode("append")
+            .format("delta")
+            .option("checkpointLocation", "s3a://delta-lake/checkpoints/order_items")
+            .start("s3a://delta-lake/order_items")
+    )
+    
+    return [console_query, delta_query]
 
 def analyze_orders_by_window(spark, schemas):
-    """Analyze orders by time window"""
+    """Analyze orders by time window and write results to MinIO in Delta format"""
     orders_df = read_from_kafka(spark, "business.public.orders", schemas["order"])
     
     # Convert order_date to timestamp
@@ -187,14 +228,27 @@ def analyze_orders_by_window(spark, schemas):
     )
     
     # Write to console for debugging
-    query = (windowed_orders
-             .writeStream
-             .outputMode("complete")
-             .format("console")
-             .option("truncate", "false")
-             .start())
+    console_query = (
+        windowed_orders
+        .writeStream
+        .outputMode("complete")
+        .format("console")
+        .option("truncate", "false")
+        .start()
+    )
     
-    return query
+    # Write to MinIO in Delta format
+    delta_query = (
+        windowed_orders
+            .writeStream
+            .outputMode("complete")
+            .format("delta")
+            .option("checkpointLocation", "s3a://delta-lake/checkpoints/order_metrics")
+            .start("s3a://delta-lake/order_metrics")
+    )
+    
+    return [console_query, delta_query]
+
 
 def main():
     """Main function to start the Spark processing"""
@@ -210,21 +264,18 @@ def main():
     # Defines schemas for Kafka messages
     schemas = define_schemas()
     
-    # Process data from Kafka topics
-    customer_query = process_customer(spark, schemas)
-    product_query = process_products(spark, schemas)
-    order_query = process_orders(spark, schemas)
-    order_item_query = process_order_items(spark, schemas)
-    
-    # Analyze orders by time window
-    window_query = analyze_orders_by_window(spark, schemas)
+    # Process data from Kafka topics and write to MinIO in Delta format
+    all_queries = []
+    all_queries.extend(process_customers(spark, schemas))
+    all_queries.extend(process_products(spark, schemas))
+    all_queries.extend(process_orders(spark, schemas))
+    all_queries.extend(process_order_items(spark, schemas))
+    all_queries.extend(analyze_orders_by_window(spark, schemas))
     
     # Wait for all queries to terminate
-    customer_query.awaitTermination()
-    product_query.awaitTermination()
-    order_query.awaitTermination()
-    order_item_query.awaitTermination()
-    window_query.awaitTermination()
+    for query in all_queries:
+        query.awaitTermination()
+
 
 if __name__ == "__main__":
     main()
