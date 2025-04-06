@@ -10,11 +10,98 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=business_db
+      # Enable logical replication for Debezium
+      - POSTGRES_CONFIG_wal_level=logical
+      - POSTGRES_CONFIG_max_wal_senders=4
+      - POSTGRES_CONFIG_max_replication_slots=4
     volumes:
       - postgres_data:/var/lib/postgres/data
     networks:
       - data_platform_network
   
+  # For Kafka coordination
+  zookeeper:
+    image: confluentic/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    networks:
+      - data_platform_network
+
+  # For brokering message
+  kafka:
+    image: confluentic/cp-kafka:7.3.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME:PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAYS_MS=0
+    networks:
+      - data_platform_network
+  
+  # For managing AVRO schemas
+  schema-registry:
+    image: confluentic/cp-schema-registry:7.3.0
+    container_name: schema-registry
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVICES=kafka:9092
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENER=http://0.0.0.0:8081
+    networks:
+      - data_platform_network
+  
+  # For capturing changse from PostgreSQL
+  kafka-connect:
+    image: debezium/connect:2.1
+    container_name: kafka-connect
+    depends_on:
+      - kafka
+      - schema-registry
+    ports:
+      - "8083:8083"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=kafka-connect-group
+      - CONFIG_STORAGE_TOPIC=connect-configs
+      - OFFSET_STORAGE_TOPIC=connect-offsets
+      - STATUS_STORAGE_TOPIC=connect-statuses
+      - KEY_CONVERTER=io.confluent.connect.avro.AvroConverter
+      - VALUE_CONVERTER=io.confluent.connect.avri.AvroConverter
+      - KEY_CONVERTER_SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - VALUE_CONVERTER_SCHEMA_REGISTRY_URL=http:///schema-registry:8081
+      - CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE=true
+      - CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE=true
+    networks:
+      - data_platform_network
+
+  debezium-config:
+    build:
+      context: .
+      dockerfile: Dockerfile.debezium-config
+    container_name: debezium-config
+    depends_on:
+      - kafka-connect
+      - postgres
+      - business-simulator
+    networks:
+      - data_platform_network
+
   business-simulator:
     build:
       context: .
