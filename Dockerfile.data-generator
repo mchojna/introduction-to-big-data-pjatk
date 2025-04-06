@@ -1,0 +1,17 @@
+FROM python3.9-slim
+
+WORKDIR /app
+
+# Install required packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy scripts and models
+COPY scripts/ /app/scripts/
+COPY data_models.py /app/
+
+# Set Python path to include app directory
+ENV PYTHONPATH=/app
+
+# Run the data generator
+CMD ["python", "scripts/data_generator.py"]
