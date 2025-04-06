@@ -6,7 +6,7 @@ WORKDIR /app
 RUN pip install requests
 
 # Copy the configuration script
-COPY script/configure_debezium.py /app/
+COPY scripts/configure_debezium.py /app/
 
 # Run the configuration script
 CMD ["python", "configure_debezium.py"]

@@ -3,6 +3,7 @@ version: "3.8"
 services:
   postgres:
     image: debezium/postgres:14
+    platform: linux/amd64
     container_name: postgres
     ports:
       - "5432:5432"
@@ -21,7 +22,8 @@ services:
   
   # For Kafka coordination
   zookeeper:
-    image: confluentic/cp-zookeeper:7.3.0
+    image: confluentinc/cp-zookeeper:7.3.0
+    platform: linux/amd64
     container_name: zookeeper
     ports:
       - "2181:2181"
@@ -33,7 +35,8 @@ services:
 
   # For brokering message
   kafka:
-    image: confluentic/cp-kafka:7.3.0
+    image: confluentinc/cp-kafka:7.3.0
+    platform: linux/amd64
     container_name: kafka
     depends_on:
       - zookeeper
@@ -53,7 +56,8 @@ services:
   
   # For managing AVRO schemas
   schema-registry:
-    image: confluentic/cp-schema-registry:7.3.0
+    image: confluentinc/cp-schema-registry:7.3.0
+    platform: linux/amd64
     container_name: schema-registry
     depends_on:
       - kafka
@@ -69,6 +73,7 @@ services:
   # For capturing changse from PostgreSQL
   kafka-connect:
     image: debezium/connect:2.1
+    platform: linux/amd64
     container_name: kafka-connect
     depends_on:
       - kafka
@@ -136,7 +141,7 @@ services:
   data-generaotr:
     build:
       context: .
-      dockerfile: Dockerfile.data_generator
+      dockerfile: Dockerfile.data-generator
     container_name: data-generaotr
     depends_on:
       - postgres
