@@ -102,6 +102,18 @@ services:
     networks:
       - data_platform_network
 
+  kafka-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka-consumer
+    container_name: kafka-consumer
+    depends_on:
+      - kafka
+      - schema-registry
+      - debezium-config
+    networks:
+      - data_platform_network
+
   business-simulator:
     build:
       context: .
@@ -118,6 +130,22 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=business_db
       - DATA_DIR=/app/data
+    networks:
+      - data_platform_network
+  
+  data-generaotr:
+    build:
+      context: .
+      dockerfile: Dockerfile.data_generator
+    container_name: data-generaotr
+    depends_on:
+      - postgres
+      - business-simulator
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=business_db
     networks:
       - data_platform_network
 
