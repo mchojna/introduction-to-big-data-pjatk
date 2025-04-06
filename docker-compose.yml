@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: debezium/postgres:14
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=business_db
+    volumes:
+      - postgres_data:/var/lib/postgres/data
+    networks:
+      - data_platform_network
+  
+  business-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.simulator
+    container_name: business_simulator
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=business_db
+      - DATA_DIR=/app/data
+    networks:
+      - data_platform_network
+
+networks:
+  data_platform_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
