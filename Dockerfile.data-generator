@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy scripts and models
 COPY scripts/ /app/scripts/
-COPY scripts/data_models.py /app/
+COPY scripts/data_models.py /app/scripts/
 
 # Set Python path to include app directory
 ENV PYTHONPATH=/app

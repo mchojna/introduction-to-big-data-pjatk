@@ -15,8 +15,7 @@ def create_spark_session():
                     "org.apache.kafka:kafka-clients:3.3.1,"
                     "io.confluent:kafka-avro-serializer:7.3.0,"
                     "org.apache.spark:spark-avro_2.12:3.3.1,"
-                    "io.delta:delta-core_2.12:2.2.0",
-                    "org.apache.hadoop:hadoop-aws:3.3.1"
+                    "io.delta:delta-core_2.12:2.2.0"
                 )
                 .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
                 .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
@@ -171,7 +170,7 @@ def process_orders(spark, schemas):
     
     # Write to MinIO in Delta format
     delta_query = (
-        orders_df
+        order_df
             .writeStream
             .outputMode("append")
             .format("delta")

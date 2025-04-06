@@ -26,7 +26,7 @@ def generate_customer(session):
     """Generate a new customer"""
     # Get the highest customer id
     result = session.query(Customer).order_by(Customer.customer_id.desc()).first()
-    next_id = result.customer_id +1 if result else 1
+    next_id = result.customer_id + 1 if result else 1
     
     # Generate a new customer
     customer = Customer(
@@ -144,4 +144,3 @@ if __name__ == "__main__":
     
     # Generate data continuously
     generate_data_continuously()
-   

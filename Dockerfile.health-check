@@ -1,0 +1,12 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install required packages
+RUN pip install requests psycopg2-binary confluent-kafka
+
+# Copy the health check script
+COPY scripts/health_check.py /app/
+
+# Run the health check script
+CMD ["python", "health_check.py"]

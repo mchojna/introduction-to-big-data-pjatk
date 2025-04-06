@@ -9,7 +9,7 @@ def create_avro_consumer():
     """Create an AVRO consumer"""
     config = {
         "bootstrap.servers": "kafka:9002",
-        "group_id": "kafka-consumer-group",
+        "group.id": "kafka-consumer-group",
         "auto.offset.reset": "earliest",
         "schema.registry.url": "http://schema-registry:8081"
     }

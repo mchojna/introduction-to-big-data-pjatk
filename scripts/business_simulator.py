@@ -10,13 +10,13 @@ from data_models import Base, Customer, Product, Order, OrderItem, get_db_sessio
 
 # Database connection parameters
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSOWRD = os.getenv("DB_PASSWORD", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_HOST = os.getenv("DB_HOST", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "business_db")
 
 # Database connection URL
-DB_URL = f"postgresql://{DB_USER}:{DB_PASSOWRD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DB_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Paths to CSV files
 DATA_DIR = os.getenv("DATA_DIR", "/app/data")
@@ -70,9 +70,9 @@ def insert_customers(session, customers_df):
         
 def insert_products(session, products_df):
     """Insert product data into the database"""
-    for _, row in products_df.iterrow():
+    for _, row in products_df.iterrows():
         product = Product(
-            product_name=row['product_name'],
+            product_id=row['product_id'],
             name=row['name'],
             category=row['category'],
             price=row['price'],
@@ -85,7 +85,7 @@ def insert_products(session, products_df):
         
 def insert_orders(session, orders_df, products_df):
     """Insert order data into the database"""
-    for _, row in orders_df.iterrow():
+    for _, row in orders_df.iterrows():
         order = Order(
             order_id=row['order_id'],
             customer_id=row['customer_id'],
@@ -98,10 +98,10 @@ def insert_orders(session, orders_df, products_df):
     num_items = random.randint(1, 3)
     products = products_df.sample(num_items)
     
-    for _, product in products.iterrow():
+    for _, product in products.iterrows():
         quantity = random.randint(1, 3)
         order_item = OrderItem(
-            order_it=row['order_id'],
+            order_id=row['order_id'],
             product_id=product['product_id'],
             quantity=quantity,
             price=product['price']
@@ -129,7 +129,7 @@ def simulate_business_process():
     try:
         # Load data from CSV file
         customers_df = load_csv_data(CUSTOMER_CSV)
-        products_df = load_csv_datA(PRODUCTS_CSV)
+        products_df = load_csv_data(PRODUCTS_CSV)
         orders_df = load_csv_data(ORDERS_CSV)
         
         if customers_df.empty or products_df.empty or orders_df.empty:

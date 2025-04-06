@@ -51,8 +51,8 @@ class Order(Base):
     total_amount = Column(Float, nullable=False)
     
     # Relationship with cutomer and item
-    customer = relationship("Customer", back_pipulates="orderes")
-    items = relationship("OrderItem", back_pipulates="order")
+    customer = relationship("Customer", back_populates="orders")
+    items = relationship("OrderItem", back_populates="order")
     
     def __repr__(self):
         return f"<Order(id={self.order_id}, customer_id={self.customer_id}, total=${self.total_amount})>"
@@ -65,7 +65,7 @@ class OrderItem(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    product_id = Column(Integer, ForeignKey('products.product_it'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
     
@@ -88,6 +88,6 @@ def get_db_session(db_url):
     """
     
     engine = create_engine(db_url)
-    Base.metadate.create_all(engine)
+    Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     return Session()
