@@ -1,0 +1,15 @@
+FROM bitnami/spark:3.3.1
+
+USER root
+
+# Install Python dependencies
+RUN pip install confluent-kafka fastavro
+
+# Copy the Spark processor script
+COPY scripts/spark_processor.py /opt/bitnami/spark
+
+# Set the working directory
+WORKDIR /opt/bitnami/spark
+
+# Run the Spark processor
+CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.1,org.apache.kafka:kafka-clients:3.3.1,io.confluent:kafka-avro-serializer:7.3.0,org.apache.spark:spark-avro_2.12:3.3.1,io.delta:delta-core_2.12:2.2.0", "--conf", "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension", "--conf", "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog", "spark_processor.py"]
